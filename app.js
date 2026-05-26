@@ -495,6 +495,7 @@ function initChatbot() {
   let customerName = null;
   let preferredEnrollmentType = null;
   let preferredClassTiming = null;
+  let typedEnrollmentMode = null;
   let lastEnrollmentDetails = null;
 
   // --- Modal Events ---
@@ -629,12 +630,14 @@ function initChatbot() {
           const waText = isTamilMsg
             ? `வணக்கம் வாணி, யோகா சேர்க்கையை முடிக்க விரும்புகிறேன். எனது விவரங்கள்:\n` +
               `• பெயர்: ${lastEnrollmentDetails.name || 'குறிப்பிடப்படவில்லை'}\n` +
-              `• வகுப்பு முறை: ${lastEnrollmentDetails.type === 'online' ? 'ஆன்லைன்' : (lastEnrollmentDetails.type === 'offline' ? 'நேரடி வகுப்பு' : 'ஏதேனும்/விருப்பமில்லை')}\n` +
-              `• வகுப்பு நேரம்: ${lastEnrollmentDetails.classTiming || 'குறிப்பிடப்படவில்லை'}`
+              `• வகுப்பு விருப்பம்: ${lastEnrollmentDetails.timing === 'morning' ? 'காலை' : (lastEnrollmentDetails.timing === 'evening' ? 'மாலை' : 'ஏதேனும்/விருப்பமில்லை')}\n` +
+              `• வகுப்பு நேரம்: ${lastEnrollmentDetails.classTiming || 'குறிப்பிடப்படவில்லை'}\n` +
+              `• வகுப்பு முறை: ${lastEnrollmentDetails.typedMode || 'குறிப்பிடப்படவில்லை'}`
             : `Hello Vani, I would like to complete my enrollment. Here are my details:\n` +
               `• Name: ${lastEnrollmentDetails.name || 'Not specified'}\n` +
-              `• Mode: ${lastEnrollmentDetails.type || 'Not specified'}\n` +
-              `• Batch Timing: ${lastEnrollmentDetails.classTiming || 'Not specified'}`;
+              `• Batch Preference: ${lastEnrollmentDetails.timing || 'Not specified'}\n` +
+              `• Batch Timing: ${lastEnrollmentDetails.classTiming || 'Not specified'}\n` +
+              `• Mode of Class: ${lastEnrollmentDetails.typedMode || 'Not specified'}`;
           
           waUrl += `?text=${encodeURIComponent(waText)}`;
           lastEnrollmentDetails = null; // Clear it after use
@@ -922,13 +925,13 @@ function initChatbot() {
       }
     }
 
-    let isAskingQuestion = isBeginnerQ || isTargetQ || isDressQ || isMatQ || isInstructorQ || isTimingQ || isPricingQ || isServicesQ || isFacilitiesQ || isLocationQ || isReviewsQ || ['online', 'offline', 'studio', 'whatsapp', 'வாட்ஸ்அப்', 'ஆன்லைன்', 'ஸ்டுடியோ'].includes(cleanWord);
+    let isAskingQuestion = isBeginnerQ || isTargetQ || isDressQ || isMatQ || isInstructorQ || isTimingQ || isPricingQ || isServicesQ || isFacilitiesQ || isLocationQ || isReviewsQ || ['online', 'offline', 'studio', 'direct', 'whatsapp', 'வாட்ஸ்அப்', 'ஆன்லைன்', 'ஸ்டுடியோ', 'நேரடி'].includes(cleanWord);
     
     // Overrides: if user is in a state where these terms are direct answers rather than separate questions
     if (lastQuestionAsked === 'ask_timing_preference' && (parseInput.includes('morning') || parseInput.includes('evening') || parseInput.includes('night') || parseInput.includes('காலை') || parseInput.includes('மாலை') || /\b\d/.test(parseInput))) {
       isAskingQuestion = false;
     }
-    if (lastQuestionAsked === 'ask_enrollment_preference' && ['online', 'offline', 'studio', 'ஆன்லைன்', 'ஸ்டுடியோ'].includes(cleanWord)) {
+    if (lastQuestionAsked === 'ask_enrollment_preference' && ['online', 'offline', 'studio', 'direct', 'ஆன்லைன்', 'ஸ்டுடியோ', 'நேரடி'].includes(cleanWord)) {
       isAskingQuestion = false;
     }
     if (lastQuestionAsked === 'ask_class_timing' && !isPricingQ && !isLocationQ && !isFacilitiesQ && !isReviewsQ && !isInstructorQ && !isDressQ && !isMatQ && !isBeginnerQ && !isTargetQ) {
@@ -1139,7 +1142,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
       if (useTamil) {
         return "வகுப்பில் சேர தங்களை வரவேற்பதில் மகிழ்ச்சி! உங்களுக்கு வசதியான வகுப்பு நேரம் (காலை அல்லது மாலை) மற்றும் உங்கள் பெயர் ஆகியவற்றை கூற முடியுமா? 💛";
       } else {
-        return "We would love to welcome you to our classes! Could you please share your preferred batch timing (morning or evening) and your name? 💛";
+        return "We would love to welcome you to our classes! Could you please share your preferred batch (morning or evening batch) and your name? 💛";
       }
     }
 
@@ -1156,6 +1159,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           customerName = null;
           preferredEnrollmentType = null;
           preferredClassTiming = null;
+          typedEnrollmentMode = null;
           questionCount = 0;
           if (prevState === 'ask_timing_preference') {
             if (useTamil) {
@@ -1183,6 +1187,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
         } else if (prevState === 'ask_enrollment_preference') {
           lastQuestionAsked = 'ask_class_timing';
           preferredEnrollmentType = 'any';
+          typedEnrollmentMode = 'any';
           if (useTamil) {
             return "பிரச்சினை இல்லை! உங்களுக்கு வகுப்பு முறை (offline/online) பற்றி குறிப்பிட்ட விருப்பம் ஏதும் இல்லாததால், எதில் வேண்டுமானாலும் இடத்தை முன்பதிவு செய்யலாம். உங்களுக்கு எந்த வகுப்பு நேரம் வசதியாக இருக்கும் (எ.கா. 5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM, 4:30 PM, அல்லது 5:30 PM)? 🙂";
           } else {
@@ -1202,6 +1207,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           customerName = null;
           preferredEnrollmentType = null;
           preferredClassTiming = null;
+          typedEnrollmentMode = null;
           questionCount = 0;
           
           if (prevState === 'ask_enrollment_details') {
@@ -1235,7 +1241,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           if (useTamil) {
             ans += "\n\nஇருப்பினும், தங்களுக்கு வசதிப்படும்போது உங்களுக்கு வசதியான வகுப்பு நேரம் (காலை/மாலை) மற்றும் உங்கள் பெயரை கூற முடியுமா? 💛";
           } else {
-            ans += "\n\nBy the way, could you share your preferred batch timing (morning/evening) and your name when you're ready? 💛";
+            ans += "\n\nBy the way, could you share your preferred batch (morning or evening batch) and your name when you're ready? 💛";
           }
         } else if (lastQuestionAsked === 'ask_enrollment_preference') {
           if (useTamil) {
@@ -1291,7 +1297,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
 • 4:30 – 5:30 PM  (Kids, Mon–Fri)
 • 5:30 – 6:30 PM  (Ladies, Mon–Fri)
 
-Would you like to register or try a class? If so, could you please share your preferred batch timing (morning/evening) and your name? 💛`;
+Would you like to register or try a class? If so, could you please share your preferred batch (morning or evening batch) and your name? 💛`;
             }
           } else if (saidMorning) {
             lastQuestionAsked = 'ask_enrollment_details';
@@ -1312,7 +1318,7 @@ Would you like to register or try a class? If so, could you please share your pr
 • 8:00 – 9:00 AM  (Ladies)
 • 9:15 – 10:15 AM  (Men & Women)
 
-Would you like to register or try a class? If so, could you please share your preferred batch timing (morning/evening) and your name? 💛`;
+Would you like to register or try a class? If so, could you please share your preferred batch (morning or evening batch) and your name? 💛`;
             }
           } else {
             if (useTamil) {
@@ -1329,7 +1335,7 @@ Would you like to register or try a class? If so, could you please share your pr
             if (useTamil) {
               return "அருமை! தொடர்வதற்கு தங்களுக்கு வசதிப்படும்போது உங்களுக்கு வசதியான வகுப்பு நேரம் (காலை/மாலை) மற்றும் உங்கள் பெயரை கூற முடியுமா? 💛";
             } else {
-              return "Perfect! Please share your preferred batch timing (morning or evening) and your name to proceed. 💛";
+              return "Perfect! Please share your preferred batch (morning or evening batch) and your name to proceed. 💛";
             }
           }
 
@@ -1356,7 +1362,7 @@ Would you like to register or try a class? If so, could you please share your pr
             if (useTamil) {
               return "மன்னிக்கவும், தங்களின் பதிவு விவரங்களை பூர்த்தி செய்ய உங்களுக்கு வசதியான வகுப்பு நேரம் (காலை அல்லது மாலை) மற்றும் உங்கள் பெயர் ஆகிய இரண்டும் தேவை. அவற்றை கூற முடியுமா? 💛";
             } else {
-              return "I'm sorry, I couldn't catch both details. Could you please share your preferred batch timing (morning or evening) and your name? 💛";
+              return "I'm sorry, I couldn't catch both details. Could you please share your preferred batch (morning or evening batch) and your name? 💛";
             }
           }
         }
@@ -1372,12 +1378,15 @@ Would you like to register or try a class? If so, could you please share your pr
           }
 
           const lowerInput = parseInput.toLowerCase();
-          if (lowerInput.includes('offline') || lowerInput.includes('studio') || lowerInput.includes('நேரடி')) {
+          if (lowerInput.includes('offline') || lowerInput.includes('studio') || lowerInput.includes('நேரடி') || lowerInput.includes('direct')) {
             preferredEnrollmentType = 'offline';
+            typedEnrollmentMode = parseInput.trim();
           } else if (lowerInput.includes('online') || lowerInput.includes('ஆன்லைன்')) {
             preferredEnrollmentType = 'online';
+            typedEnrollmentMode = parseInput.trim();
           } else {
             preferredEnrollmentType = 'any';
+            typedEnrollmentMode = parseInput.trim();
           }
 
           lastQuestionAsked = 'ask_class_timing';
@@ -1430,7 +1439,8 @@ Would you like to register or try a class? If so, could you please share your pr
               name: customerName,
               timing: preferredTiming,
               classTiming: preferredClassTiming,
-              type: preferredEnrollmentType
+              type: preferredEnrollmentType,
+              typedMode: typedEnrollmentMode
             };
 
             lastQuestionAsked = null;
@@ -1438,6 +1448,7 @@ Would you like to register or try a class? If so, could you please share your pr
             customerName = null;
             preferredEnrollmentType = null;
             preferredClassTiming = null;
+            typedEnrollmentMode = null;
             questionCount = 0;
 
             if (useTamil) {
@@ -1476,7 +1487,7 @@ Would you like to register or try a class? If so, could you please share your pr
         if (useTamil) {
           ans += "\n\nஉங்களுக்கு பல கேள்விகள் இருப்பதால், தற்காலிக வகுப்பு (trial) அல்லது வகுப்பில் சேருவது குறித்துப் பேசுவது எளிதாக இருக்கும்! உங்களுக்கு விருப்பமிருந்தால், உங்களுக்கு வசதியான வகுப்பு நேரம் (காலை அல்லது மாலை) மற்றும் உங்கள் பெயரை கூற முடியுமா? எவ்வித கட்டாயமும் இல்லை! 💛";
         } else {
-          ans += "\n\nSince you have quite a few questions, it might easiest to set up a trial or chat about joining our classes! If you're interested, could you share your preferred batch timing (morning or evening) and your name? No pressure at all! 💛";
+          ans += "\n\nSince you have quite a few questions, it might easiest to set up a trial or chat about joining our classes! If you're interested, could you share your preferred batch (morning or evening batch) and your name? No pressure at all! 💛";
         }
       }
       return ans;
