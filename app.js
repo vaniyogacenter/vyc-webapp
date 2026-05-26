@@ -693,6 +693,8 @@ function initChatbot() {
 
     // Remove tags from input for keyword parsing
     let parseInput = cleanInput.replace('[language: tamil]', '').replace('[language: english]', '').trim();
+    const cleanWord = parseInput.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").toLowerCase().trim();
+
 
     // Helper to detect specific and general health/medical issues/problems
     function detectHealthIssue(text) {
@@ -772,8 +774,8 @@ function initChatbot() {
     const pricingKeywords = ['price', 'pricing', 'fee', 'fees', 'cost', 'how much', 'charge', 'charges', 'payment', 'discount', 'discounts', 'rate', 'rates', 'amount', 'pay', 'group discount', 'family discount', 'கட்டணம்', 'கட்டண', 'விலை', 'மாதம்', 'சலுகை', 'தள்ளுபடி', 'பணம்', 'மாதாந்திர', 'எவ்வளவு'];
     const servicesKeywords = [
       'class', 'classes', 'service', 'services', 'class details', 'types of yoga', 'what yoga', 'hatha', 'ashtanga', 'pranayama', 'breathing', 'weight loss', 'flexibility',
-      'online class', 'online classes', 'online session', 'online sessions',
-      'offline class', 'offline classes', 'offline session', 'offline sessions',
+      'online class', 'online classes', 'online session', 'online sessions', 'online',
+      'offline class', 'offline classes', 'offline session', 'offline sessions', 'offline', 'studio',
       'suryanamaskar', 'mudras', 'stress relief', 'mindfulness',
       'வகுப்புகள்', 'என்ன யோகா', 'சேவைகள்', 'யோகா வகைகள்', 'ஹதா', 'அஷ்டாங்க', 'மூச்சுப்பயிற்சி', 'எடை', 'உடல் எடை', 'நெகிழ்வு', 'மூச்சு', 'பிராணாயாமம்', 'குழந்தைகள் யோகா', 'குடும்ப யோகா',
       'சூரியநமஸ்காரம்', 'முத்திரைகள்', 'மன அழுத்தம்', 'தியானம்', 'விழிப்புணர்வு'
@@ -782,8 +784,8 @@ function initChatbot() {
     const locationKeywords = [
       'location', 'located', 'where are', 'address', 'where is', 'map', 'maps', 'google maps', 'direction', 'directions', 'landmark', 'how to reach', 'road', 'street', 'place', 'how do I get', 'location details',
       'eurokids', 'euro kids', 'okkiyam', 'thoraipakkam', 'chandrasekaran', 'chennai', 'plot', 'omr', 'reach', 'get to', 'find you', 'find the studio', 'find the center',
-      'phone', 'number', 'mobile', 'cell', 'contact', 'call', 'telephone', 'tel', 'email', 'mail', 'gmail', 'vaniyogacenter',
-      'முகவரி', 'எங்கே', 'இடம்', 'பாதை', 'அட்ரஸ்', 'வரைபடம்', 'அடையாளம்', 'இருப்பிடம்', 'தொலைபேசி', 'நம்பர்', 'மின்னஞ்சல்', 'அழைக்க', 'ஜிமெயில்', 'தொடர்பு', 'போன்', 'ஃபோன்'
+      'phone', 'number', 'mobile', 'cell', 'contact', 'call', 'telephone', 'tel', 'email', 'mail', 'gmail', 'vaniyogacenter', 'whatsapp', 'whats app',
+      'முகவரி', 'எங்கே', 'இடம்', 'பாதை', 'அட்ரஸ்', 'வரைபடம்', 'அடையாளம்', 'இருப்பிடம்', 'தொலைபேசி', 'நம்பர்', 'மின்னஞ்சல்', 'அழைக்க', 'ஜிமெயில்', 'தொடர்பு', 'போன்', 'ஃபோன்', 'வாட்ஸ்அப்'
     ];
     const reviewsKeywords = ['review', 'reviews', 'rating', 'ratings', 'testimonial', 'testimonials', 'feedback', 'what do people say', 'what customers say', 'மதிப்புரை', 'மதிப்புரைகள்', 'விமர்சனம்', 'விமர்சனங்கள்', 'ஃபீட்பேக்', 'பீட்பேக்'];
 
@@ -844,22 +846,95 @@ function initChatbot() {
       return explicitPhrases.some(phrase => clean.includes(phrase));
     }
 
-    const isBeginnerQ = hasKeyword(parseInput, beginnerKeywords);
-    const isTargetQ = hasKeyword(parseInput, targetKeywords);
-    const isDressQ = hasKeyword(parseInput, dressKeywords);
-    const isMatQ = hasKeyword(parseInput, matKeywords) || hasKeyword(parseInput, ['mat']);
-    const isInstructorQ = hasKeyword(parseInput, instructorKeywords);
-    const isTimingQ = hasKeyword(parseInput, timingKeywords);
-    const isPricingQ = hasKeyword(parseInput, pricingKeywords);
-    const isServicesQ = hasKeyword(parseInput, servicesKeywords);
-    const isFacilitiesQ = hasKeyword(parseInput, facilitiesKeywords);
-    const isLocationQ = hasKeyword(parseInput, locationKeywords);
-    const isReviewsQ = hasKeyword(parseInput, reviewsKeywords);
+    function isPositiveResponse(text) {
+      const clean = text.toLowerCase().trim().replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"");
+      
+      const exactPositives = [
+        'yes', 'yep', 'yup', 'yeah', 'sure', 'ok', 'okay', 'indeed', 'absolutely', 'of course', 'agree', 'confirm', 'why not',
+        'ஆம்', 'ஆமாம்', 'சரி', 'கண்டிப்பாக', 'ஓகே', 'நன்று'
+      ];
+      
+      if (exactPositives.includes(clean)) {
+        return true;
+      }
+      
+      const positivePhrases = [
+        'yes please', 'yes of course', 'sounds good', 'reserve a spot', 'i want to join', 'please do', 'register me',
+        'ஆமாம் தயவுசெய்து', 'முன்பதிவு செய்', 'பதிவு செய்'
+      ];
+      return positivePhrases.some(phrase => clean.includes(phrase));
+    }
 
-    const isAskingQuestion = isBeginnerQ || isTargetQ || isDressQ || isMatQ || isInstructorQ || isTimingQ || isPricingQ || isServicesQ || isFacilitiesQ || isLocationQ || isReviewsQ;
+    const isSingleWord = cleanWord.split(/\s+/).length === 1 && cleanWord !== '';
+
+    let isBeginnerQ = hasKeyword(parseInput, beginnerKeywords);
+    let isTargetQ = hasKeyword(parseInput, targetKeywords);
+    let isDressQ = hasKeyword(parseInput, dressKeywords);
+    let isMatQ = hasKeyword(parseInput, matKeywords) || hasKeyword(parseInput, ['mat']);
+    let isInstructorQ = hasKeyword(parseInput, instructorKeywords);
+    let isTimingQ = hasKeyword(parseInput, timingKeywords);
+    let isPricingQ = hasKeyword(parseInput, pricingKeywords);
+    let isServicesQ = hasKeyword(parseInput, servicesKeywords);
+    let isFacilitiesQ = hasKeyword(parseInput, facilitiesKeywords);
+    let isLocationQ = hasKeyword(parseInput, locationKeywords);
+    let isReviewsQ = hasKeyword(parseInput, reviewsKeywords);
+
+    if (isSingleWord) {
+      if (['class', 'classes', 'yoga', 'service', 'services', 'types', 'வகுப்புகள்', 'சேவைகள்', 'வகுப்பு'].includes(cleanWord)) {
+        isServicesQ = true;
+      } else if (['fee', 'fees', 'price', 'prices', 'pricing', 'cost', 'costs', 'charge', 'charges', 'rate', 'rates', 'payment', 'pay', 'amount', 'discount', 'discounts', 'கட்டணம்', 'கட்டண', 'விலை', 'மாதம்', 'சலுகை', 'தள்ளுபடி'].includes(cleanWord)) {
+        isPricingQ = true;
+      } else if (['timing', 'timings', 'batch', 'batches', 'schedule', 'schedules', 'time', 'times', 'hour', 'hours', 'slot', 'slots', 'session', 'sessions', 'வகுப்பு நேரம்', 'நேரங்கள்', 'நேரம்', 'கால அட்டவணை'].includes(cleanWord)) {
+        isTimingQ = true;
+      } else if (['review', 'reviews', 'rating', 'ratings', 'testimonial', 'testimonials', 'feedback', 'விமர்சனம்', 'விமர்சனங்கள்', 'மதிப்புரை', 'மதிப்புரைகள்', 'ஃபீட்பேக்', 'பீட்பேக்'].includes(cleanWord)) {
+        isReviewsQ = true;
+      } else if (['location', 'address', 'landmark', 'map', 'maps', 'directions', 'direction', 'where', 'road', 'street', 'place', 'thoraipakkam', 'chennai', 'முகவரி', 'எங்கே', 'இடம்', 'பாதை', 'அட்ரஸ்', 'வரைபடம்', 'அடையாளம்', 'இருப்பிடம்'].includes(cleanWord)) {
+        isLocationQ = true;
+      } else if (['facility', 'facilities', 'parking', 'park', 'toilet', 'toilets', 'restroom', 'restrooms', 'washroom', 'washrooms', 'water', 'drinking water', 'வசதி', 'கழிவறை', 'மாற்று அறை', 'குடிநீர்', 'பார்க்கிங்', 'பார்க்'].includes(cleanWord)) {
+        isFacilitiesQ = true;
+      } else if (['mat', 'mats', 'பாய்', 'மேட்', 'யோகா பாய்', 'மேட்கள்'].includes(cleanWord)) {
+        isMatQ = true;
+      } else if (['instructor', 'teacher', 'trainer', 'coach', 'vani', 'பயிற்சியாளர்', 'ஆசிரியர்', 'வாணி'].includes(cleanWord)) {
+        isInstructorQ = true;
+      } else if (['dress', 'clothes', 'wear', 'clothing', 'ஆடை', 'உடை'].includes(cleanWord)) {
+        isDressQ = true;
+      } else if (['beginner', 'beginners', 'novice', 'fresher', 'freshers', 'start', 'basics', 'ஆரம்பநிலை', 'புதியவர்'].includes(cleanWord)) {
+        isBeginnerQ = true;
+      }
+    }
+
+    let isAskingQuestion = isBeginnerQ || isTargetQ || isDressQ || isMatQ || isInstructorQ || isTimingQ || isPricingQ || isServicesQ || isFacilitiesQ || isLocationQ || isReviewsQ || ['online', 'offline', 'studio', 'whatsapp', 'வாட்ஸ்அப்', 'ஆன்லைன்', 'ஸ்டுடியோ'].includes(cleanWord);
+    
+    // Overrides: if user is in a state where these terms are direct answers rather than separate questions
+    if (lastQuestionAsked === 'ask_timing_preference' && (parseInput.includes('morning') || parseInput.includes('evening') || parseInput.includes('night') || parseInput.includes('காலை') || parseInput.includes('மாலை'))) {
+      isAskingQuestion = false;
+    }
+    if (lastQuestionAsked === 'ask_enrollment_preference' && ['online', 'offline', 'studio'].includes(parseInput.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim())) {
+      isAskingQuestion = false;
+    }
 
     // Define helper to get standard informational responses
     function getNormalResponse(parseInput, useTamil, conditionDisclaimer) {
+      const cleanWord = parseInput.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim();
+      
+      if (cleanWord === 'online') {
+        return useTamil 
+          ? "💻 **Online வகுப்புகள்**: நாங்கள் மாதத்திற்கு ₹1,750 கட்டணத்தில் நேரடி ஆன்லைன் வீடியோ யோகா வகுப்புகளை வழங்குகிறோம். அனைத்து வகுப்புகளும் ஆரம்பநிலையினருக்கும் ஏற்றவை! நீங்கள் சேர விரும்புகிறீர்களா? 🙂"
+          : "💻 **Online Classes**: We offer live interactive online yoga sessions via video for ₹1,750/month. Suitable for all fitness levels and beginners! Would you like to register? 🙂";
+      }
+      
+      if (cleanWord === 'offline' || cleanWord === 'studio') {
+        return useTamil 
+          ? "🏛️ **Offline வகுப்புகள்**: சென்னை ஒக்கியம் துரைப்பாக்கத்தில் உள்ள எங்கள் யோகா ஸ்டுடியோவில் நேரடி வகுப்புகள் நடைபெறுகின்றன. கட்டணம்: ₹2,000/மாதம் (யோகா மேட் வழங்கப்படும்). நீங்கள் சேர விரும்புகிறீர்களா? 🙂"
+          : "🏛️ **Offline Classes**: We offer offline classes at our serene studio in Okkiyam Thoraipakkam, Chennai for ₹2,000/month (yoga mats provided). Beginners are welcome! Would you like to register? 🙂";
+      }
+      
+      if (cleanWord === 'whatsapp' || cleanWord === 'வாட்ஸ்அப்') {
+        return useTamil
+          ? "📞 **வாட்ஸ்அப் தொடர்பு**: எங்களை வாட்ஸ்அப் மூலம் +91 7373100220 என்ற எண்ணில் தொடர்பு கொள்ளலாம். நேரடியாக உரையாட இந்த லிங்கை கிளிக் செய்யவும்: https://wa.me/917373100220 🙂"
+          : "📞 **WhatsApp Contact**: You can reach us via WhatsApp at +91 7373100220. Click here to chat directly: https://wa.me/917373100220 🙂";
+      }
+
       if (isBeginnerQ) {
         return useTamil ? "ஆம், எங்கள் அனைத்து வகுப்புகளும் ஆரம்பநிலையினருக்கும் (beginners) ஏற்றவை 🙂 நீங்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது மிகவும் நல்லது." : "Yes, our classes are completely beginner-friendly 🙂 It is best to start on Mondays.";
       }
@@ -1052,34 +1127,60 @@ Would you like to know more about our batch timings, pricing, or facilities? �
     if (lastQuestionAsked) {
       if (isNegative) {
         const prevState = lastQuestionAsked;
-        lastQuestionAsked = null;
-        preferredTiming = null;
-        customerName = null;
-        questionCount = 0;
         
-        if (prevState === 'ask_timing_preference') {
-          if (useTamil) {
-            return "பிரச்சினை இல்லை! வாணி யோகா மையம் பற்றி வேறு ஏதேனும் கேள்விகள் இருந்தால் தாராளமாகக் கேளுங்கள். 🙂";
+        if (cleanWord === 'cancel' || cleanWord === 'ரத்து') {
+          lastQuestionAsked = null;
+          preferredTiming = null;
+          customerName = null;
+          questionCount = 0;
+          if (prevState === 'ask_timing_preference') {
+            if (useTamil) {
+              return "பிரச்சினை இல்லை! வாணி யோகா மையம் பற்றி வேறு ஏதேனும் கேள்விகள் இருந்தால் தாராளமாகக் கேளுங்கள். 🙂";
+            } else {
+              return "No problem at all! Feel free to ask any other questions about Vani Yoga Center. 🙂";
+            }
           } else {
-            return "No problem at all! Feel free to ask any other questions about Vani Yoga Center. 🙂";
+            if (useTamil) {
+              return "பிரச்சினை இல்லை! சேர்க்கை பதிவு ரத்து செய்யப்பட்டது. வேறு ஏதேனும் விவரங்கள் தேவைப்பட்டால் கேளுங்கள்! 🙂";
+            } else {
+              return "No problem! We've cancelled the enrollment request. Let me know if you'd like to explore anything else! 🙂";
+            }
           }
-        } else if (prevState === 'ask_enrollment_details') {
+        }
+
+        if (prevState === 'ask_timing_preference') {
+          lastQuestionAsked = 'ask_enrollment_details';
+          preferredTiming = 'any';
           if (useTamil) {
-            return "பிரச்சினை இல்லை! இப்போதைக்கு நான் சேர்க்கை பதிவை தொடரவில்லை. எங்கள் வகுப்புகள் பற்றி வேறு ஏதேனும் கேள்விகள் இருந்தால் கேளுங்கள்! 🙂";
+            return "பிரச்சினை இல்லை! உங்களுக்கு நேர விருப்பம் ஏதும் இல்லாததால், வகுப்பில் சேர அல்லது தற்காலிக வகுப்பில் கலந்துகொள்ள விரும்புகிறீர்களா? ஆம் எனில், உங்கள் பெயரை கூற முடியுமா? 💛";
           } else {
-            return "No problem! I won't proceed with the enrollment for now. Let me know if you have any other questions about our classes! 🙂";
+            return "No problem! Since you don't have a timing preference, would you like to register or try a class? If so, could you please share your name? 💛";
           }
         } else if (prevState === 'ask_enrollment_preference') {
+          lastQuestionAsked = 'ask_enrollment_confirm';
           if (useTamil) {
-            return "பிரச்சினை இல்லை! சேர்க்கை பதிவு ரத்து செய்யப்பட்டது. வேறு ஏதேனும் விவரங்கள் தேவைப்பட்டால் கேளுங்கள்! 🙂";
+            return "பிரச்சினை இல்லை! உங்களுக்கு வகுப்பு முறை (offline/online) பற்றி குறிப்பிட்ட விருப்பம் ஏதும் இல்லாததால், எதில் வேண்டுமானாலும் இடத்தை முன்பதிவு செய்யலாம். offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
           } else {
-            return "No problem! We've cancelled the enrollment request. Let me know if you'd like to explore anything else! 🙂";
+            return "No problem! Since you don't have a preference, we can reserve a spot for you at our offline studio or online. Offline classes are ₹2,000/month and online classes are ₹1,750/month. We usually recommend beginners start on a Monday. Would you like us to reserve a spot for you for this upcoming Monday? 🙂";
           }
-        } else if (prevState === 'ask_enrollment_confirm') {
-          if (useTamil) {
-            return "பிரச்சினை இல்லை! இப்போதைக்கு நாங்கள் இடத்தை முன்பதிவு செய்யவில்லை. நீங்கள் சேரத் தயாராக இருக்கும்போது எப்போது வேண்டுமானாலும் எங்களைத் தொடர்பு கொள்ளலாம்! 🙂";
-          } else {
-            return "No problem at all! We won't reserve a spot for now. Feel free to reach out whenever you're ready to join! 🙂";
+        } else {
+          lastQuestionAsked = null;
+          preferredTiming = null;
+          customerName = null;
+          questionCount = 0;
+          
+          if (prevState === 'ask_enrollment_details') {
+            if (useTamil) {
+              return "பிரச்சினை இல்லை! இப்போதைக்கு நான் சேர்க்கை பதிவை தொடரவில்லை. எங்கள் வகுப்புகள் பற்றி வேறு ஏதேனும் கேள்விகள் இருந்தால் கேளுங்கள்! 🙂";
+            } else {
+              return "No problem! I won't proceed with the enrollment for now. Let me know if you have any other questions about our classes! 🙂";
+            }
+          } else if (prevState === 'ask_enrollment_confirm') {
+            if (useTamil) {
+              return "பிரச்சினை இல்லை! இப்போதைக்கு நாங்கள் இடத்தை முன்பதிவு செய்யவில்லை. நீங்கள் சேரத் தயாராக இருக்கும்போது எப்போது வேண்டுமானாலும் எங்களைத் தொடர்பு கொள்ளலாம்! 🙂";
+            } else {
+              return "No problem at all! We won't reserve a spot for now. Feel free to reach out whenever you're ready to join! 🙂";
+            }
           }
         }
       }
@@ -1118,6 +1219,15 @@ Would you like to know more about our batch timings, pricing, or facilities? �
       } else {
         // User is answering the current prompt
         if (lastQuestionAsked === 'ask_timing_preference') {
+          const isPositive = isPositiveResponse(parseInput);
+          if (isPositive) {
+            if (useTamil) {
+              return "மிக்க மகிழ்ச்சி! உங்களுக்கு எந்த நேரம் வசதியாக இருக்கும் — காலையா அல்லது மாலையா? 🙂";
+            } else {
+              return "Great! Which timing suits you better — morning or evening? 🙂";
+            }
+          }
+
           const saidEvening = parseInput.includes('evening') || parseInput.includes('night') || parseInput.includes('pm') || parseInput.includes('மாலை') || 
                               /\b(4|5|6)[:.]?(30|00)?\b/.test(parseInput) || /\b(4|5|6)\s*pm\b/i.test(parseInput) || /\b(16|17|18)[:.]?(30|00)?\b/.test(parseInput);
           const saidMorning = parseInput.includes('morning') || parseInput.includes('am') || parseInput.includes('காலை') || 
@@ -1172,6 +1282,15 @@ Would you like to register or try a class? If so, could you please share your pr
         }
         
         if (lastQuestionAsked === 'ask_enrollment_details') {
+          const isPositive = isPositiveResponse(parseInput);
+          if (isPositive) {
+            if (useTamil) {
+              return "அருமை! தொடர்வதற்கு தங்களுக்கு வசதிப்படும்போது உங்களுக்கு வசதியான வகுப்பு நேரம் (காலை/மாலை) மற்றும் உங்கள் பெயரை கூற முடியுமா? 💛";
+            } else {
+              return "Perfect! Please share your preferred batch timing (morning or evening) and your name to proceed. 💛";
+            }
+          }
+
           const check = checkNameAndTiming(parseInput);
           
           if (check.nameFound) {
@@ -1201,6 +1320,15 @@ Would you like to register or try a class? If so, could you please share your pr
         }
         
         if (lastQuestionAsked === 'ask_enrollment_preference') {
+          const isPositive = isPositiveResponse(parseInput);
+          if (isPositive) {
+            if (useTamil) {
+              return "மகிழ்ச்சி! நீங்கள் எங்கள் ஸ்டு튜디오வில் நேரடியாக படிக்கும் offline வகுப்பை விரும்புகிறீர்களா, அல்லது ஆன்லைன் (online) வகுப்பை விரும்புகிறீர்களா? 🙂";
+            } else {
+              return "Great! Would you prefer offline classes at our studio or online classes? 🙂";
+            }
+          }
+
           lastQuestionAsked = 'ask_enrollment_confirm';
           if (useTamil) {
             return "மிக்க நன்று! offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
@@ -1210,28 +1338,33 @@ Would you like to register or try a class? If so, could you please share your pr
         }
         
         if (lastQuestionAsked === 'ask_enrollment_confirm') {
-          lastQuestionAsked = null;
-          preferredTiming = null;
-          customerName = null;
-          questionCount = 0;
-          if (useTamil) {
-            return "அருமை! 🧘 தங்களின் பதிவு விவரங்களை நான் சேமித்துக் கொண்டேன். ஸ்லாட்டை முன்பதிவு செய்வதற்காக நீங்கள் இப்போது எங்களின் வாட்ஸ்அப் (WhatsApp) உரையாடலுக்கு திருப்பி விடப்படுவீர்கள். 💛";
+          const isPositive = isPositiveResponse(parseInput);
+          if (isPositive) {
+            lastQuestionAsked = null;
+            preferredTiming = null;
+            customerName = null;
+            questionCount = 0;
+            // trigger redirect
+            setTimeout(() => {
+              window.open('https://wa.me/917373100220', '_blank');
+            }, 5000);
+            if (useTamil) {
+              return "அருமை! 🧘 தங்களின் பதிவு விவரங்களை நான் சேமித்துக் கொண்டேன். ஸ்லாட்டை முன்பதிவு செய்வதற்காக நீங்கள் இப்போது எங்களின் வாட்ஸ்அப் (WhatsApp) உரையாடலுக்கு திருப்பி விடப்படுவீர்கள். 💛";
+            } else {
+              return "Wonderful! 🧘 I have recorded your enrollment request. You are now going to be redirected to our WhatsApp conversation to complete booking your slot. 💛";
+            }
           } else {
-            return "Wonderful! 🧘 I have recorded your enrollment request. You are now going to be redirected to our WhatsApp conversation to complete booking your slot. 💛";
+            if (useTamil) {
+              return "வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? தயவுசெய்து ஆம் அல்லது இல்லை என்று கூறவும். 🙂";
+            } else {
+              return "Would you like us to reserve a spot for you for this upcoming Monday? Please reply with Yes or No. 🙂";
+            }
           }
         }
       }
     }
 
     // Normal Flow (no active enrollment flow)
-    if (isNegative) {
-      if (useTamil) {
-        return "சரி, உங்களுக்கு வேறு ஏதேனும் உதவி தேவைப்பட்டால் கேளுங்கள்! 🙂";
-      } else {
-        return "No problem! Let me know if you need anything else. 🙂";
-      }
-    }
-
     if (isAskingQuestion) {
       questionCount++;
       let ans = getNormalResponse(parseInput, useTamil, conditionDisclaimer);
@@ -1239,6 +1372,9 @@ Would you like to register or try a class? If so, could you please share your pr
       // If timings question was asked in normal flow, update lastQuestionAsked to prompt them for morning/evening
       if (isTimingQ) {
         lastQuestionAsked = 'ask_timing_preference';
+      }
+      if (['online', 'offline', 'studio', 'ஆன்லைன்', 'ஸ்டுடியோ'].includes(cleanWord)) {
+        lastQuestionAsked = 'ask_enrollment_details';
       }
       
       // If customer asks more than 4 continuous questions (i.e. 5th question onwards)
@@ -1253,6 +1389,24 @@ Would you like to register or try a class? If so, could you please share your pr
       }
       return ans;
     }
+
+    const isPositive = isPositiveResponse(parseInput);
+    if (isPositive) {
+      if (useTamil) {
+        return "வணக்கம்! இன்று உங்களுக்கு நான் எவ்வாறு உதவ வேண்டும்? எங்களின் வகுப்பு நேரங்கள், கட்டணம் அல்லது சேர்க்கை பற்றி அறிய விரும்புகிறீர்களா? 🙂";
+      } else {
+        return "Hello! How can I help you today? Would you like to know more about our batch timings, pricing, or how to join? 🙂";
+      }
+    }
+
+    if (isNegative) {
+      if (useTamil) {
+        return "சரி, உங்களுக்கு வேறு ஏதேனும் உதவி தேவைப்பட்டால் கேளுங்கள்! 🙂";
+      } else {
+        return "No problem! Let me know if you need anything else. 🙂";
+      }
+    }
+
 
     const greetings = ['hi', 'hello', 'hey', 'namaste', 'வணக்கம்', 'ஹலோ'];
     if (greetings.some(g => parseInput.includes(g))) {
