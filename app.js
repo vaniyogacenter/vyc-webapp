@@ -494,6 +494,7 @@ function initChatbot() {
   let preferredTiming = null;
   let customerName = null;
   let preferredEnrollmentType = null;
+  let preferredClassTiming = null;
   let lastEnrollmentDetails = null;
 
   // --- Modal Events ---
@@ -628,12 +629,12 @@ function initChatbot() {
           const waText = isTamilMsg
             ? `வணக்கம் வாணி, யோகா சேர்க்கையை முடிக்க விரும்புகிறேன். எனது விவரங்கள்:\n` +
               `• பெயர்: ${lastEnrollmentDetails.name || 'குறிப்பிடப்படவில்லை'}\n` +
-              `• வகுப்பு நேரம்: ${lastEnrollmentDetails.timing === 'morning' ? 'காலை' : (lastEnrollmentDetails.timing === 'evening' ? 'மாலை' : 'ஏதேனும்/விருப்பமில்லை')}\n` +
-              `• வகுப்பு முறை: ${lastEnrollmentDetails.type === 'online' ? 'ஆன்லைன்' : (lastEnrollmentDetails.type === 'offline' ? 'நேரடி வகுப்பு' : 'ஏதேனும்/விருப்பமில்லை')}`
+              `• வகுப்பு முறை: ${lastEnrollmentDetails.type === 'online' ? 'ஆன்லைன்' : (lastEnrollmentDetails.type === 'offline' ? 'நேரடி வகுப்பு' : 'ஏதேனும்/விருப்பமில்லை')}\n` +
+              `• வகுப்பு நேரம்: ${lastEnrollmentDetails.classTiming || 'குறிப்பிடப்படவில்லை'}`
             : `Hello Vani, I would like to complete my enrollment. Here are my details:\n` +
               `• Name: ${lastEnrollmentDetails.name || 'Not specified'}\n` +
-              `• Preferred Timing: ${lastEnrollmentDetails.timing || 'Not specified'}\n` +
-              `• Mode: ${lastEnrollmentDetails.type || 'Not specified'}`;
+              `• Mode: ${lastEnrollmentDetails.type || 'Not specified'}\n` +
+              `• Batch Timing: ${lastEnrollmentDetails.classTiming || 'Not specified'}`;
           
           waUrl += `?text=${encodeURIComponent(waText)}`;
           lastEnrollmentDetails = null; // Clear it after use
@@ -924,10 +925,13 @@ function initChatbot() {
     let isAskingQuestion = isBeginnerQ || isTargetQ || isDressQ || isMatQ || isInstructorQ || isTimingQ || isPricingQ || isServicesQ || isFacilitiesQ || isLocationQ || isReviewsQ || ['online', 'offline', 'studio', 'whatsapp', 'வாட்ஸ்அப்', 'ஆன்லைன்', 'ஸ்டுடியோ'].includes(cleanWord);
     
     // Overrides: if user is in a state where these terms are direct answers rather than separate questions
-    if (lastQuestionAsked === 'ask_timing_preference' && (parseInput.includes('morning') || parseInput.includes('evening') || parseInput.includes('night') || parseInput.includes('காலை') || parseInput.includes('மாலை'))) {
+    if (lastQuestionAsked === 'ask_timing_preference' && (parseInput.includes('morning') || parseInput.includes('evening') || parseInput.includes('night') || parseInput.includes('காலை') || parseInput.includes('மாலை') || /\b\d/.test(parseInput))) {
       isAskingQuestion = false;
     }
-    if (lastQuestionAsked === 'ask_enrollment_preference' && ['online', 'offline', 'studio'].includes(parseInput.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g,"").trim())) {
+    if (lastQuestionAsked === 'ask_enrollment_preference' && ['online', 'offline', 'studio', 'ஆன்லைன்', 'ஸ்டுடியோ'].includes(cleanWord)) {
+      isAskingQuestion = false;
+    }
+    if (lastQuestionAsked === 'ask_class_timing' && !isPricingQ && !isLocationQ && !isFacilitiesQ && !isReviewsQ && !isInstructorQ && !isDressQ && !isMatQ && !isBeginnerQ && !isTargetQ) {
       isAskingQuestion = false;
     }
 
@@ -1151,6 +1155,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           preferredTiming = null;
           customerName = null;
           preferredEnrollmentType = null;
+          preferredClassTiming = null;
           questionCount = 0;
           if (prevState === 'ask_timing_preference') {
             if (useTamil) {
@@ -1176,18 +1181,27 @@ Would you like to know more about our batch timings, pricing, or facilities? �
             return "No problem! Since you don't have a timing preference, would you like to register or try a class? If so, could you please share your name? 💛";
           }
         } else if (prevState === 'ask_enrollment_preference') {
-          lastQuestionAsked = 'ask_enrollment_confirm';
+          lastQuestionAsked = 'ask_class_timing';
           preferredEnrollmentType = 'any';
           if (useTamil) {
-            return "பிரச்சினை இல்லை! உங்களுக்கு வகுப்பு முறை (offline/online) பற்றி குறிப்பிட்ட விருப்பம் ஏதும் இல்லாததால், எதில் வேண்டுமானாலும் இடத்தை முன்பதிவு செய்யலாம். offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
+            return "பிரச்சினை இல்லை! உங்களுக்கு வகுப்பு முறை (offline/online) பற்றி குறிப்பிட்ட விருப்பம் ஏதும் இல்லாததால், எதில் வேண்டுமானாலும் இடத்தை முன்பதிவு செய்யலாம். உங்களுக்கு எந்த வகுப்பு நேரம் வசதியாக இருக்கும் (எ.கா. 5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM, 4:30 PM, அல்லது 5:30 PM)? 🙂";
           } else {
-            return "No problem! Since you don't have a preference, we can reserve a spot for you at our offline studio or online. Offline classes are ₹2,000/month and online classes are ₹1,750/month. We usually recommend beginners start on a Monday. Would you like us to reserve a spot for you for this upcoming Monday? 🙂";
+            return "No problem! Since you don't have a class mode preference, we can proceed. Which class/batch timing suits you best (e.g., 5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM, 4:30 PM, or 5:30 PM)? 🙂";
+          }
+        } else if (prevState === 'ask_class_timing') {
+          lastQuestionAsked = 'ask_enrollment_confirm';
+          preferredClassTiming = 'any';
+          if (useTamil) {
+            return "பிரச்சினை இல்லை! உங்களுக்கு குறிப்பிட்ட நேர விருப்பம் ஏதும் இல்லாததால், வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
+          } else {
+            return "No problem! Since you don't have a specific timing preference, would you like us to reserve a spot for you for this upcoming Monday? 🙂";
           }
         } else {
           lastQuestionAsked = null;
           preferredTiming = null;
           customerName = null;
           preferredEnrollmentType = null;
+          preferredClassTiming = null;
           questionCount = 0;
           
           if (prevState === 'ask_enrollment_details') {
@@ -1234,6 +1248,13 @@ Would you like to know more about our batch timings, pricing, or facilities? �
             ans += "\n\nஇருப்பினும், வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
           } else {
             ans += "\n\nBy the way, would you like us to reserve a spot for you for this upcoming Monday? 🙂";
+          }
+        }
+        if (lastQuestionAsked === 'ask_class_timing') {
+          if (useTamil) {
+            ans += "\n\nஇருப்பினும், தங்களுக்கு வசதியான வகுப்பு நேரத்தைக் குறிப்பிட முடியுமா? 🙂";
+          } else {
+            ans += "\n\nBy the way, could you specify your preferred class/batch timing? 🙂";
           }
         }
         return ans;
@@ -1359,11 +1380,46 @@ Would you like to register or try a class? If so, could you please share your pr
             preferredEnrollmentType = 'any';
           }
 
+          lastQuestionAsked = 'ask_class_timing';
+          if (useTamil) {
+            let options = "";
+            if (preferredTiming === 'morning') {
+              options = "எங்கள் காலை நேர வகுப்புகள்:\n• 5:50 – 7:00 AM (பெண்கள்)\n• 7:00 – 8:00 AM (ஆண்கள் & பெண்கள்)\n• 8:00 – 9:00 AM (பெண்கள்)\n• 9:15 – 10:15 AM (ஆண்கள் & பெண்கள்)";
+            } else if (preferredTiming === 'evening') {
+              options = "எங்கள் மாலை நேர வகுப்புகள்:\n• 4:30 – 5:30 PM (குழந்தைகள்)\n• 5:30 – 6:30 PM (பெண்கள்)";
+            } else {
+              options = "காலை நேர வகுப்புகள் (5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM) அல்லது மாலை நேர வகுப்புகள் (4:30 PM, 5:30 PM)";
+            }
+            return `மிக்க நன்று! offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். ${options}\n\nஉங்களுக்கு எந்த வகுப்பு நேரம் மிகவும் வசதியாக இருக்கும்? 🙂`;
+          } else {
+            let options = "";
+            if (preferredTiming === 'morning') {
+              options = "Our morning batches:\n• 5:50 – 7:00 AM (Ladies)\n• 7:00 – 8:00 AM (Men & Women)\n• 8:00 – 9:00 AM (Ladies)\n• 9:15 – 10:15 AM (Men & Women)";
+            } else if (preferredTiming === 'evening') {
+              options = "Our evening batches:\n• 4:30 – 5:30 PM (Kids)\n• 5:30 – 6:30 PM (Ladies)";
+            } else {
+              options = "Morning batches (5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM) or evening batches (4:30 PM, 5:30 PM)";
+            }
+            return `Perfect! Offline classes are ₹2,000/month and online classes are ₹1,750/month. ${options}\n\nWhich batch timing suits you best? 🙂`;
+          }
+        }
+
+        if (lastQuestionAsked === 'ask_class_timing') {
+          const isPositive = isPositiveResponse(parseInput);
+          if (isPositive) {
+            if (useTamil) {
+              return "மகிழ்ச்சி! உங்களுக்கு எந்த வகுப்பு நேரம் வசதியாக இருக்கும் (எ.கா. 5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM, 4:30 PM, அல்லது 5:30 PM)? 🙂";
+            } else {
+              return "Great! Which class/batch timing suits you best (e.g., 5:50 AM, 7:00 AM, 8:00 AM, 9:15 AM, 4:30 PM, or 5:30 PM)? 🙂";
+            }
+          }
+
+          preferredClassTiming = parseInput.trim();
           lastQuestionAsked = 'ask_enrollment_confirm';
           if (useTamil) {
-            return "மிக்க நன்று! offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
+            return "அருமை, தங்கள் நேரத் தேர்வை நான் குறித்துக் கொண்டேன்! புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
           } else {
-            return "Perfect! Offline classes are ₹2,000/month and online classes are ₹1,750/month. We usually recommend beginners start on a Monday. Would you like us to reserve a spot for you for this upcoming Monday? 🙂";
+            return `Perfect, I've noted down your preferred class timing: "${preferredClassTiming}". We usually recommend beginners start on a Monday. Would you like us to reserve a spot for you for this upcoming Monday? 🙂`;
           }
         }
         
@@ -1373,6 +1429,7 @@ Would you like to register or try a class? If so, could you please share your pr
             lastEnrollmentDetails = {
               name: customerName,
               timing: preferredTiming,
+              classTiming: preferredClassTiming,
               type: preferredEnrollmentType
             };
 
@@ -1380,6 +1437,7 @@ Would you like to register or try a class? If so, could you please share your pr
             preferredTiming = null;
             customerName = null;
             preferredEnrollmentType = null;
+            preferredClassTiming = null;
             questionCount = 0;
 
             if (useTamil) {
