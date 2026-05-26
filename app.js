@@ -493,6 +493,8 @@ function initChatbot() {
   let questionCount = 0;
   let preferredTiming = null;
   let customerName = null;
+  let preferredEnrollmentType = null;
+  let lastEnrollmentDetails = null;
 
   // --- Modal Events ---
   sandboxSettingsBtn.addEventListener('click', () => settingsModal.classList.add('open'));
@@ -620,7 +622,23 @@ function initChatbot() {
     if (displayResponse.includes("redirected to our WhatsApp conversation") || 
         displayResponse.includes("வாட்ஸ்அப் (WhatsApp) உரையாடலுக்கு திருப்பி விடப்படுவீர்கள்")) {
       setTimeout(() => {
-        window.open("https://wa.me/917373100220", "_blank");
+        let waUrl = "https://wa.me/917373100220";
+        if (lastEnrollmentDetails) {
+          const isTamilMsg = displayResponse.includes("வாட்ஸ்அப்");
+          const waText = isTamilMsg
+            ? `வணக்கம் வாணி, யோகா சேர்க்கையை முடிக்க விரும்புகிறேன். எனது விவரங்கள்:\n` +
+              `• பெயர்: ${lastEnrollmentDetails.name || 'குறிப்பிடப்படவில்லை'}\n` +
+              `• வகுப்பு நேரம்: ${lastEnrollmentDetails.timing === 'morning' ? 'காலை' : (lastEnrollmentDetails.timing === 'evening' ? 'மாலை' : 'ஏதேனும்/விருப்பமில்லை')}\n` +
+              `• வகுப்பு முறை: ${lastEnrollmentDetails.type === 'online' ? 'ஆன்லைன்' : (lastEnrollmentDetails.type === 'offline' ? 'நேரடி வகுப்பு' : 'ஏதேனும்/விருப்பமில்லை')}`
+            : `Hello Vani, I would like to complete my enrollment. Here are my details:\n` +
+              `• Name: ${lastEnrollmentDetails.name || 'Not specified'}\n` +
+              `• Preferred Timing: ${lastEnrollmentDetails.timing || 'Not specified'}\n` +
+              `• Mode: ${lastEnrollmentDetails.type || 'Not specified'}`;
+          
+          waUrl += `?text=${encodeURIComponent(waText)}`;
+          lastEnrollmentDetails = null; // Clear it after use
+        }
+        window.open(waUrl, "_blank");
       }, 5000);
     }
   }
@@ -1132,6 +1150,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           lastQuestionAsked = null;
           preferredTiming = null;
           customerName = null;
+          preferredEnrollmentType = null;
           questionCount = 0;
           if (prevState === 'ask_timing_preference') {
             if (useTamil) {
@@ -1158,6 +1177,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           }
         } else if (prevState === 'ask_enrollment_preference') {
           lastQuestionAsked = 'ask_enrollment_confirm';
+          preferredEnrollmentType = 'any';
           if (useTamil) {
             return "பிரச்சினை இல்லை! உங்களுக்கு வகுப்பு முறை (offline/online) பற்றி குறிப்பிட்ட விருப்பம் ஏதும் இல்லாததால், எதில் வேண்டுமானாலும் இடத்தை முன்பதிவு செய்யலாம். offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
           } else {
@@ -1167,6 +1187,7 @@ Would you like to know more about our batch timings, pricing, or facilities? �
           lastQuestionAsked = null;
           preferredTiming = null;
           customerName = null;
+          preferredEnrollmentType = null;
           questionCount = 0;
           
           if (prevState === 'ask_enrollment_details') {
@@ -1329,6 +1350,15 @@ Would you like to register or try a class? If so, could you please share your pr
             }
           }
 
+          const lowerInput = parseInput.toLowerCase();
+          if (lowerInput.includes('offline') || lowerInput.includes('studio') || lowerInput.includes('நேரடி')) {
+            preferredEnrollmentType = 'offline';
+          } else if (lowerInput.includes('online') || lowerInput.includes('ஆன்லைன்')) {
+            preferredEnrollmentType = 'online';
+          } else {
+            preferredEnrollmentType = 'any';
+          }
+
           lastQuestionAsked = 'ask_enrollment_confirm';
           if (useTamil) {
             return "மிக்க நன்று! offline வகுப்புகளுக்கான கட்டணம் ₹2,000/மாதம் மற்றும் online வகுப்புகளுக்கான கட்டணம் ₹1,750/மாதம். புதியவர்கள் திங்கட்கிழமைகளில் வகுப்பைத் தொடங்குவது சிறந்தது. வரும் திங்கட்கிழமை உங்களுக்கான இடத்தை முன்பதிவு செய்யலாமா? 🙂";
@@ -1340,14 +1370,18 @@ Would you like to register or try a class? If so, could you please share your pr
         if (lastQuestionAsked === 'ask_enrollment_confirm') {
           const isPositive = isPositiveResponse(parseInput);
           if (isPositive) {
+            lastEnrollmentDetails = {
+              name: customerName,
+              timing: preferredTiming,
+              type: preferredEnrollmentType
+            };
+
             lastQuestionAsked = null;
             preferredTiming = null;
             customerName = null;
+            preferredEnrollmentType = null;
             questionCount = 0;
-            // trigger redirect
-            setTimeout(() => {
-              window.open('https://wa.me/917373100220', '_blank');
-            }, 5000);
+
             if (useTamil) {
               return "அருமை! 🧘 தங்களின் பதிவு விவரங்களை நான் சேமித்துக் கொண்டேன். ஸ்லாட்டை முன்பதிவு செய்வதற்காக நீங்கள் இப்போது எங்களின் வாட்ஸ்அப் (WhatsApp) உரையாடலுக்கு திருப்பி விடப்படுவீர்கள். 💛";
             } else {
